@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de Rótulos de Envío</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<!-- Librerías para generar el PDF en el navegador, sin backend -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0F1115;
+    --panel:#181B21;
+    --line:#2A2F38;
+    --text:#EDECE6;
+    --text-dim:#9CA3AF;
+    --accent:#E3A23D;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .app{max-width:520px;margin:0 auto;padding:32px 20px 80px;}
+
+  /* ---------- Pantallas del asistente ---------- */
+  .screen{display:none;}
+  .screen.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  h1{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:22px;margin:0 0 6px;}
+  .subtitle{color:var(--text-dim);font-size:14px;margin:0 0 28px;}
+  .step-label{
+    font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);
+    letter-spacing:.03em;margin-bottom:8px;
+  }
+
+  /* Botones grandes de selección de marca */
+  .brand-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px;}
+  .brand-card{
+    background:var(--panel);border:2px solid var(--line);border-radius:10px;
+    padding:20px 14px;text-align:center;cursor:pointer;transition:.15s;
+  }
+  .brand-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+  .brand-card img{width:100%;max-width:110px;height:110px;object-fit:contain;margin-bottom:10px;}
+  .brand-card span{display:block;font-weight:700;font-size:14px;}
+
+  /* Botones de destino */
+  .dest-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px;}
+  .dest-card{
+    background:var(--panel);border:2px solid var(--line);border-radius:10px;
+    padding:28px 14px;text-align:center;cursor:pointer;font-weight:700;font-size:16px;transition:.15s;
+  }
+  .dest-card:hover{border-color:var(--accent);}
+  .dest-card .icon{font-size:28px;display:block;margin-bottom:8px;}
+
+  .btn-back{
+    background:none;border:none;color:var(--text-dim);font-size:13px;cursor:pointer;
+    margin-bottom:18px;padding:0;font-family:'Inter',sans-serif;
+  }
+  .btn-back:hover{color:var(--text);}
+
+  /* Formulario */
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:13px;color:var(--text-dim);margin-bottom:6px;}
+  .field label .opt{color:#6B7280;font-style:italic;}
+  .field input, .field textarea{
+    width:100%;background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    color:var(--text);padding:11px 12px;font-size:15px;font-family:'Inter',sans-serif;
+  }
+  .field input:focus, .field textarea:focus{outline:none;border-color:var(--accent);}
+  .field textarea{resize:vertical;min-height:60px;}
+
+  .btn-primary{
+    width:100%;background:var(--accent);color:#171207;border:none;border-radius:6px;
+    padding:14px;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;
+  }
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-secondary{
+    width:100%;background:none;border:1px solid var(--line);color:var(--text);
+    border-radius:6px;padding:12px;font-size:14px;cursor:pointer;margin-top:10px;
+  }
+  .btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* ---------- Vista previa / rótulo imprimible ---------- */
+  .preview-wrap{
+    background:#fff;border-radius:4px;overflow:hidden;margin:20px auto 0;
+    width:100%;max-width:380px;box-shadow:0 10px 40px rgba(0,0,0,.4);
+  }
+  /* El rótulo real: proporción A5 (148mm x 210mm) */
+  #rotulo{
+    width:100%;aspect-ratio:148/210;position:relative;overflow:hidden;
+    font-family:'Inter',sans-serif;color:#1A1A1A;background:#fff;
+  }
+
+  /* Marcas de corte, esquinas, decorativas */
+  .cut-mark{position:absolute;width:14px;height:14px;border:2px solid rgba(0,0,0,.25);z-index:5;}
+  .cut-mark.tl{top:6px;left:6px;border-right:none;border-bottom:none;}
+  .cut-mark.tr{top:6px;right:6px;border-left:none;border-bottom:none;}
+  .cut-mark.bl{bottom:6px;left:6px;border-right:none;border-top:none;}
+  .cut-mark.br{bottom:6px;right:6px;border-left:none;border-top:none;}
+
+  .r-header{
+    padding:5% 6% 4%;display:flex;align-items:center;gap:4%;
+  }
+  .r-header img{width:22%;object-fit:contain;}
+  .r-header .brandtext{flex:1;}
+  .r-header .brandtext .name{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:clamp(14px,4.2vw,22px);line-height:1;}
+  .r-header .brandtext .slogan{font-size:clamp(7px,1.9vw,10px);letter-spacing:.04em;margin-top:3px;opacity:.75;}
+
+  .r-band{
+    padding:2.5% 6%;font-family:'JetBrains Mono',monospace;font-size:clamp(8px,2.1vw,10px);
+    display:flex;justify-content:space-between;letter-spacing:.02em;
+  }
+
+  .r-title{
+    text-align:center;font-family:'Archivo Black',sans-serif;font-weight:400;
+    font-size:clamp(13px,3.6vw,18px);letter-spacing:.03em;padding:3% 0;margin:0 6%;
+    border-top:2px solid rgba(0,0,0,.1);border-bottom:2px solid rgba(0,0,0,.1);
+  }
+
+  .r-body{padding:5% 8%;}
+  .r-row{margin-bottom:4.5%;}
+  .r-row .k{
+    font-family:'JetBrains Mono',monospace;font-size:clamp(7px,1.8vw,9px);
+    text-transform:uppercase;letter-spacing:.06em;color:#6B6B6B;margin-bottom:2px;
+  }
+  .r-row .v{font-size:clamp(11px,3vw,15px);font-weight:600;line-height:1.25;word-break:break-word;}
+
+  .r-amount-box{
+    margin:5% 8% 0;padding:4% 6%;border-radius:8px;text-align:center;
+  }
+  .r-amount-box .lab{font-family:'JetBrains Mono',monospace;font-size:clamp(8px,2vw,10px);letter-spacing:.05em;}
+  .r-amount-box .num{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:clamp(20px,6.5vw,32px);margin-top:2px;}
+
+  .r-tracking-box{
+    margin:5% 8% 0;padding:4% 6%;border-radius:8px;text-align:center;border:2px dashed rgba(0,0,0,.25);
+  }
+  .r-tracking-box .lab{font-family:'JetBrains Mono',monospace;font-size:clamp(8px,2vw,10px);letter-spacing:.05em;color:#6B6B6B;}
+  .r-tracking-box .code{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:clamp(14px,4.2vw,20px);letter-spacing:.08em;margin-top:3px;}
+
+  .r-barcode{display:flex;align-items:flex-end;gap:1.4%;height:22px;margin:3% 8% 0;justify-content:center;}
+  .r-barcode span{display:block;width:2px;background:#1A1A1A;}
+
+  .r-footer{
+    position:absolute;bottom:0;left:0;right:0;padding:3.5% 6%;
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:'JetBrains Mono',monospace;font-size:clamp(7px,1.8vw,9.5px);
+  }
+
+  .r-orderid{
+    position:absolute;top:5%;right:6%;font-family:'JetBrains Mono',monospace;
+    font-size:clamp(7px,1.8vw,9px);opacity:.6;letter-spacing:.03em;
+  }
+
+  /* ---------- Temas por marca ---------- */
+  .theme-voce .r-header{background:#0B0B0B;color:#F5F5F0;}
+  .theme-voce .r-band{background:#171717;color:#E3A23D;}
+  .theme-voce .r-title{color:#0B0B0B;}
+  .theme-voce .r-amount-box{background:#0B0B0B;color:#E3A23D;}
+  .theme-voce .r-tracking-box{background:#F7F5EF;}
+  .theme-voce .r-footer{background:#0B0B0B;color:#F5F5F0;}
+  .theme-voce .r-barcode span{background:#0B0B0B;}
+
+  .theme-wong .r-header{background:#F0842B;color:#fff;}
+  .theme-wong .r-band{background:#1F3B70;color:#F4B942;}
+  .theme-wong .r-title{color:#1F3B70;}
+  .theme-wong .r-amount-box{background:#1F3B70;color:#F4B942;}
+  .theme-wong .r-tracking-box{background:#FFF7EA;border-color:#F0842B;}
+  .theme-wong .r-footer{background:#1F3B70;color:#fff;}
+  .theme-wong .r-barcode span{background:#1F3B70;}
+
+  .action-buttons{margin-top:22px;}
+  .hint{font-size:12px;color:var(--text-dim);text-align:center;margin-top:14px;line-height:1.5;}
+
+  @media print{
+    body *{visibility:hidden;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ PANTALLA 1: elegir marca ============ -->
+  <div class="screen active" id="screen-brand">
+    <div class="step-label">PASO 1 DE 3</div>
+    <h1>¿Para qué negocio es el envío?</h1>
+    <p class="subtitle">Elige la marca y el rótulo se arma automáticamente con su logo y sus datos de contacto.</p>
+    <div class="brand-grid">
+      <div class="brand-card" onclick="selectBrand('wong')">
+        <img src="assets/logo-drwong.png" alt="Dr. Wong Imports">
+        <span>Dr. Wong Imports</span>
+      </div>
+      <div class="brand-card" onclick="selectBrand('voce')">
+        <img src="assets/logo-vocestore.png" alt="VOCE STORE">
+        <span>VOCE STORE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PANTALLA 2: elegir destino ============ -->
+  <div class="screen" id="screen-dest">
+    <button class="btn-back" onclick="goTo('screen-brand')">&larr; Cambiar marca</button>
+    <div class="step-label">PASO 2 DE 3</div>
+    <h1>¿A dónde va el pedido?</h1>
+    <p class="subtitle">Los datos que te voy a pedir cambian según el destino.</p>
+    <div class="dest-grid">
+      <div class="dest-card" onclick="selectDest('lima')">
+        <span class="icon">🏍️</span>
+        Lima<br>(delivery/moto)
+      </div>
+      <div class="dest-card" onclick="selectDest('provincia')">
+        <span class="icon">🚚</span>
+        Provincia<br>(courier)
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PANTALLA 3: formulario ============ -->
+  <div class="screen" id="screen-form">
+    <button class="btn-back" onclick="goTo('screen-dest')">&larr; Cambiar destino</button>
+    <div class="step-label">PASO 3 DE 3</div>
+    <h1>Datos del pedido</h1>
+    <p class="subtitle">Copia y pega los datos del cliente aquí.</p>
+    <form id="form-lima" class="data-form" style="display:none;">
+      <div class="field"><label>Nombres y apellidos</label><input type="text" name="nombre" required></div>
+      <div class="field"><label>Dirección</label><textarea name="direccion" required></textarea></div>
+      <div class="field"><label>Referencia <span class="opt">(opcional)</span></label><input type="text" name="referencia"></div>
+      <div class="field"><label>Número de teléfono</label><input type="tel" name="telefono" required></div>
+      <div class="field"><label>Monto a cobrar <span class="opt">(deja vacío si ya está pagado)</span></label><input type="number" step="0.10" name="monto" placeholder="Ej: 89.90"></div>
+      <button type="submit" class="btn-primary">Generar rótulo</button>
+    </form>
+    <form id="form-provincia" class="data-form" style="display:none;">
+      <div class="field"><label>Nombre completo</label><input type="text" name="nombre" required></div>
+      <div class="field"><label>DNI / CE</label><input type="text" name="dni" required></div>
+      <div class="field"><label>Número de teléfono</label><input type="tel" name="telefono" required></div>
+      <div class="field"><label>Provincia / Departamento</label><input type="text" name="provincia" required></div>
+      <div class="field"><label>Número de seguimiento / tracking</label><input type="text" name="tracking" required></div>
+      <button type="submit" class="btn-primary">Generar rótulo</button>
+    </form>
+  </div>
+
+  <!-- ============ PANTALLA 4: vista previa + descarga PDF ============ -->
+  <div class="screen" id="screen-preview">
+    <button class="btn-back" onclick="goTo('screen-form')">&larr; Editar datos</button>
+    <div class="step-label">LISTO</div>
+    <h1>Tu rótulo está armado</h1>
+    <p class="subtitle">Revisa que todo esté correcto antes de descargar.</p>
+
+    <div class="preview-wrap">
+      <div id="rotulo">
+        <div class="cut-mark tl"></div><div class="cut-mark tr"></div>
+        <div class="cut-mark bl"></div><div class="cut-mark br"></div>
+
+        <div class="r-orderid" id="r-orderid"></div>
+
+        <div class="r-header">
+          <img id="r-logo" src="" alt="logo">
+          <div class="brandtext">
+            <div class="name" id="r-brandname"></div>
+            <div class="slogan" id="r-slogan"></div>
+          </div>
+        </div>
+
+        <div class="r-band">
+          <span id="r-fecha"></span>
+          <span id="r-destlabel"></span>
+        </div>
+
+        <div class="r-title" id="r-titulo">DATOS DEL DESTINATARIO</div>
+
+        <div class="r-body" id="r-body">
+          <!-- se llena dinámicamente según Lima / Provincia -->
+        </div>
+
+        <div class="r-footer">
+          <span id="r-contact1"></span>
+          <span id="r-contact2"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn-primary" onclick="descargarPDF()">Descargar PDF (A5)</button>
+      <button class="btn-secondary" onclick="nuevoPedido()">Nuevo pedido</button>
+    </div>
+    <p class="hint">El PDF se genera en tu navegador — no sube tus datos a ningún servidor. Imprímelo en hoja A5 o en A4 con "ajustar a página".</p>
+  </div>
+
+</div>
+
+<script>
+  // ---------- Datos de cada marca: edítalos aquí si cambian ----------
+  const BRANDS = {
+    wong: {
+      nombre: "Dr. Wong Imports",
+      slogan: "Importaciones de confianza",
+      logo: "assets/logo-drwong.png",
+      theme: "theme-wong",
+      contacto1: "IG: @dr_wong_imports",
+      contacto2: "WhatsApp +51 923 868 074",
+      prefijo: "DW"
+    },
+    voce: {
+      nombre: "VOCE STORE",
+      slogan: "URBAN TREND, CLOTHES AND MORE",
+      logo: "assets/logo-vocestore.png",
+      theme: "theme-voce",
+      contacto1: "www.vocestore.com.pe",
+      contacto2: "WhatsApp 965 165 095",
+      prefijo: "VS"
+    }
+  };
+
+  let state = { brand: null, dest: null };
+
+  function goTo(id){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  function selectBrand(brandKey){
+    state.brand = brandKey;
+    goTo('screen-dest');
+  }
+
+  function selectDest(destKey){
+    state.dest = destKey;
+    document.getElementById('form-lima').style.display = destKey === 'lima' ? 'block' : 'none';
+    document.getElementById('form-provincia').style.display = destKey === 'provincia' ? 'block' : 'none';
+    goTo('screen-form');
+  }
+
+  function nuevoPedido(){
+    document.getElementById('form-lima').reset();
+    document.getElementById('form-provincia').reset();
+    state = { brand: null, dest: null };
+    goTo('screen-brand');
+  }
+
+  // Genera un correlativo simple tipo VS-K3F9A2 a partir de la fecha/hora
+  function generarOrderId(prefijo){
+    return prefijo + "-" + Date.now().toString(36).toUpperCase();
+  }
+
+  function formatearFecha(){
+    const d = new Date();
+    return d.toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric' });
+  }
+
+  // Dibuja las barritas decorativas tipo código de barras (solo visual)
+  function dibujarBarcode(container, cantidad){
+    container.innerHTML = '';
+    for(let i=0; i<cantidad; i++){
+      const bar = document.createElement('span');
+      const h = 8 + Math.random()*14;
+      bar.style.height = h + 'px';
+      bar.style.width = (Math.random() > 0.7 ? '3px' : '2px');
+      container.appendChild(bar);
+    }
+  }
+
+  function llenarRotulo(brandKey, destKey, data){
+    const brand = BRANDS[brandKey];
+    const rotulo = document.getElementById('rotulo');
+
+    rotulo.classList.remove('theme-wong','theme-voce');
+    rotulo.classList.add(brand.theme);
+
+    document.getElementById('r-logo').src = brand.logo;
+    document.getElementById('r-brandname').textContent = brand.nombre;
+    document.getElementById('r-slogan').textContent = brand.slogan;
+    document.getElementById('r-contact1').textContent = brand.contacto1;
+    document.getElementById('r-contact2').textContent = brand.contacto2;
+    document.getElementById('r-fecha').textContent = 'Fecha: ' + formatearFecha();
+    document.getElementById('r-orderid').textContent = 'N° ' + generarOrderId(brand.prefijo);
+
+    const body = document.getElementById('r-body');
+    body.innerHTML = '';
+
+    if(destKey === 'lima'){
+      document.getElementById('r-destlabel').textContent = 'ENVÍO LIMA';
+      document.getElementById('r-titulo').textContent = 'DATOS DEL DESTINATARIO';
+
+      body.innerHTML = `
+        <div class="r-row"><div class="k">Nombres y apellidos</div><div class="v">${escapeHTML(data.nombre)}</div></div>
+        <div class="r-row"><div class="k">Dirección</div><div class="v">${escapeHTML(data.direccion)}</div></div>
+        ${data.referencia ? `<div class="r-row"><div class="k">Referencia</div><div class="v">${escapeHTML(data.referencia)}</div></div>` : ''}
+        <div class="r-row"><div class="k">Teléfono</div><div class="v">${escapeHTML(data.telefono)}</div></div>
+      `;
+
+      const amountBox = document.createElement('div');
+      if(data.monto && parseFloat(data.monto) > 0){
+        amountBox.className = 'r-amount-box';
+        amountBox.innerHTML = `<div class="lab">MONTO A COBRAR</div><div class="num">S/ ${parseFloat(data.monto).toFixed(2)}</div>`;
+      } else {
+        amountBox.className = 'r-amount-box';
+        amountBox.innerHTML = `<div class="lab">ESTADO DEL PEDIDO</div><div class="num" style="font-size:clamp(16px,5vw,22px);">PAGADO ✓</div>`;
+      }
+      body.appendChild(amountBox);
+
+      const bc = document.createElement('div');
+      bc.className = 'r-barcode';
+      body.appendChild(bc);
+      dibujarBarcode(bc, 34);
+
+    } else {
+      document.getElementById('r-destlabel').textContent = 'ENVÍO A PROVINCIA';
+      document.getElementById('r-titulo').textContent = 'DATOS DEL DESTINATARIO';
+
+      body.innerHTML = `
+        <div class="r-row"><div class="k">Nombre completo</div><div class="v">${escapeHTML(data.nombre)}</div></div>
+        <div class="r-row"><div class="k">DNI / CE</div><div class="v">${escapeHTML(data.dni)}</div></div>
+        <div class="r-row"><div class="k">Teléfono</div><div class="v">${escapeHTML(data.telefono)}</div></div>
+        <div class="r-row"><div class="k">Destino</div><div class="v">${escapeHTML(data.provincia)}</div></div>
+      `;
+
+      const trackBox = document.createElement('div');
+      trackBox.className = 'r-tracking-box';
+      trackBox.innerHTML = `<div class="lab">N° DE SEGUIMIENTO</div><div class="code">${escapeHTML(data.tracking)}</div>`;
+      body.appendChild(trackBox);
+
+      const bc = document.createElement('div');
+      bc.className = 'r-barcode';
+      body.appendChild(bc);
+      dibujarBarcode(bc, 34);
+    }
+
+    goTo('screen-preview');
+  }
+
+  function escapeHTML(str){
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  document.getElementById('form-lima').addEventListener('submit', function(e){
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    llenarRotulo(state.brand, 'lima', Object.fromEntries(fd));
+  });
+
+  document.getElementById('form-provincia').addEventListener('submit', function(e){
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    llenarRotulo(state.brand, 'provincia', Object.fromEntries(fd));
+  });
+
+  function descargarPDF(){
+    const rotulo = document.getElementById('rotulo');
+    const btns = document.querySelectorAll('.btn-primary, .btn-secondary');
+    btns.forEach(b => b.disabled = true);
+
+    html2canvas(rotulo, { scale: 3, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a5' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgData = canvas.toDataURL('image/png');
+      pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
+      const nombreArchivo = 'rotulo-' + state.brand + '-' + Date.now() + '.pdf';
+      pdf.save(nombreArchivo);
+      btns.forEach(b => b.disabled = false);
+    }).catch(err => {
+      alert('Hubo un problema generando el PDF. Vuelve a intentar.');
+      btns.forEach(b => b.disabled = false);
+      console.error(err);
+    });
+  }
+</script>
+</body>
+</html>
