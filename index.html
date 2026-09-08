@@ -114,23 +114,23 @@
   }
 
   .r-header{
-    position:relative;z-index:1;padding:6cqw 6cqw 3cqw;
+    position:relative;z-index:1;padding:4.5cqw 6cqw 2.5cqw;
     display:flex;align-items:center;gap:4cqw;background:#fff;
   }
   .r-header::before{
     content:'';position:absolute;top:0;left:0;right:0;height:2.5cqw;background:var(--brand-accent);
   }
-  .r-header img{width:20cqw;height:20cqw;object-fit:contain;flex-shrink:0;}
+  .r-header img{width:16cqw;height:16cqw;object-fit:contain;flex-shrink:0;}
   .r-header .brandtext{flex:1;}
   .r-header .brandtext .name{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:7.2cqw;line-height:1;color:#111;}
   .r-header .brandtext .slogan{font-size:2.6cqw;letter-spacing:.04em;margin-top:2.5cqw;color:#777;}
 
   .r-band{
-    position:relative;z-index:1;padding:0 6cqw 3cqw;
+    position:relative;z-index:1;padding:0 6cqw 2cqw;
     display:flex;justify-content:space-between;align-items:flex-start;gap:3cqw;
   }
   .r-ordercode{
-    border:0.6cqw solid var(--brand-accent);border-radius:1.5cqw;padding:2cqw 3cqw;flex:1;
+    border:0.6cqw solid var(--brand-accent);border-radius:1.5cqw;padding:1.4cqw 3cqw;flex:1;
   }
   .r-ordercode .lab{font-family:'JetBrains Mono',monospace;font-size:2.1cqw;letter-spacing:.06em;color:#777;text-transform:uppercase;}
   .r-ordercode .code{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:4.6cqw;letter-spacing:.03em;color:#111;margin-top:0.5cqw;}
@@ -143,12 +143,12 @@
 
   .r-title{
     position:relative;z-index:1;text-align:center;font-family:'Archivo Black',sans-serif;font-weight:400;
-    font-size:5.6cqw;letter-spacing:.03em;padding:3cqw 0;margin:0 6cqw;color:#111;
+    font-size:5cqw;letter-spacing:.03em;padding:2cqw 0;margin:0 6cqw;color:#111;
     border-top:0.4cqw solid #DDD;border-bottom:0.4cqw solid #DDD;
   }
 
-  .r-body{position:relative;z-index:1;padding:5cqw 8cqw;}
-  .r-row{margin-bottom:4.5cqw;}
+  .r-body{position:relative;z-index:1;padding:3.5cqw 8cqw 1cqw;}
+  .r-row{margin-bottom:3cqw;}
   .r-row .k{
     font-family:'JetBrains Mono',monospace;font-size:2.4cqw;
     text-transform:uppercase;letter-spacing:.06em;color:#7A7A7A;margin-bottom:0.6cqw;
@@ -156,27 +156,30 @@
   .r-row .v{font-size:4.4cqw;font-weight:600;line-height:1.25;word-break:break-word;color:#111;}
 
   .r-amount-box{
-    margin:5cqw 8cqw 0;padding:3.5cqw 6cqw;border-radius:2cqw;text-align:center;
+    margin:3cqw 8cqw 0;padding:2.2cqw 6cqw;border-radius:2cqw;text-align:center;
     border:0.7cqw solid var(--brand-accent);background:#fff;
   }
-  .r-amount-box .lab{font-family:'JetBrains Mono',monospace;font-size:2.4cqw;letter-spacing:.05em;color:#777;}
-  .r-amount-box .num{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:8cqw;margin-top:0.5cqw;color:#111;}
+  .r-amount-box .lab{font-family:'JetBrains Mono',monospace;font-size:2.2cqw;letter-spacing:.05em;color:#777;}
+  .r-amount-box .num{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:6.5cqw;margin-top:0.3cqw;color:#111;}
 
   .r-tracking-box{
-    margin:5cqw 8cqw 0;padding:3.5cqw 6cqw;border-radius:2cqw;text-align:center;border:0.5cqw dashed #999;
+    margin:3cqw 8cqw 0;padding:2.2cqw 6cqw;border-radius:2cqw;text-align:center;border:0.5cqw dashed #999;
   }
-  .r-tracking-box .lab{font-family:'JetBrains Mono',monospace;font-size:2.4cqw;letter-spacing:.05em;color:#7A7A7A;}
-  .r-tracking-box .code{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:5cqw;letter-spacing:.08em;margin-top:0.8cqw;color:#111;}
+  .r-tracking-box .lab{font-family:'JetBrains Mono',monospace;font-size:2.2cqw;letter-spacing:.05em;color:#7A7A7A;}
+  .r-tracking-box .code{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:4.4cqw;letter-spacing:.08em;margin-top:0.5cqw;color:#111;}
 
-  .r-barcode-wrap{margin:5cqw 12cqw 0;text-align:center;}
+  .r-barcode-wrap{margin:3cqw 14cqw 0;text-align:center;}
   .r-barcode-wrap svg{width:100%;height:auto;}
 
   .r-footer{
-    position:absolute;bottom:0;left:0;right:0;z-index:1;padding:3cqw 6cqw;
+    position:absolute;bottom:0;left:0;right:0;z-index:2;padding:2.5cqw 6cqw;
     display:flex;justify-content:space-between;align-items:center;background:#fff;
     border-top:0.6cqw solid var(--brand-accent);
-    font-family:'JetBrains Mono',monospace;font-size:2.3cqw;color:#333;
+    font-family:'JetBrains Mono',monospace;font-size:2.1cqw;color:#333;
   }
+  /* Espacio reservado al fondo del cuerpo para que ningún contenido quede
+     oculto detrás del pie de página, sin importar cuánto texto haya. */
+  #rotulo{padding-bottom:11cqw;}
 
   /* ---------- Color de marca (solo se usa en bordes, franjas e insignias) ---------- */
   .theme-voce{--brand-accent:#111111;}
